@@ -61,6 +61,17 @@ def numerical_jacobian(q1, q2, q3, l1=1, l2=1, l3=1, h=1e-6):
     return np.column_stack([col1, col2, col3])
 
 
+def force_to_torque(F, q1, q2, q3, l1=1, l2=1, l3=1):
+    """Joint torques needed to exert a force F at the end-effector (statics).
+
+    Computes tau = J^T F, with J the 2x3 Jacobian at the given configuration.
+    F: force at the end-effector [Fx, Fy] in N. Angles q1, q2, q3 in radians;
+    l1, l2, l3 link lengths. Returns the torques [tau_s, tau_e, tau_w].
+    """
+    J = jacobian(q1, q2, q3, l1, l2, l3)
+    tau = J.T @ F
+    return tau
+
 
 
 

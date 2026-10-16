@@ -1,5 +1,5 @@
 import numpy as np
-from kinematics import forward_kinematics, jacobian, numerical_jacobian
+from kinematics import forward_kinematics, jacobian, numerical_jacobian, force_to_torque
 
 # Test1: 0°, 90°, 0° and l1=l2=l3=1
 elbow1, wrist1, end_effector1 = forward_kinematics(np.deg2rad(0), np.deg2rad(90), np.deg2rad(0))
@@ -53,7 +53,37 @@ for i in range(100):
     assert np.allclose(an_jac, num_jac)
 
 
+# Test4: joint torques for F = [10, 0] N at 0°, 90°, 0° (l1 = l2 = l3 = 1),
+# compared with values computed by hand
+F = np.array([10, 0])
+
+tau = force_to_torque(F, np.deg2rad(0), np.deg2rad(90), np.deg2rad(0))
+expected_tau = [-20, -20, -10]
+
+assert np.allclose(tau, expected_tau)
+
+
+# Test5: J^T F vs geometric torques (r_x * F_y - r_y * F_x) on 100 random
+# configurations and forces (angles in [-pi, pi], lengths in [0.5, 2], forces in [-10, 10] N)
+
+for i in range(100):
+    q1 = rng.uniform(-np.pi, +np.pi)
+    q2 = rng.uniform(-np.pi, +np.pi)
+    q3 = rng.uniform(-np.pi, +np.pi)
+    l1 = rng.uniform(0.5, 2)
+    l2 = rng.uniform(0.5, 2)
+    l3 = rng.uniform(0.5, 2)
+    F = np.array([rng.uniform(-10, +10), rng.uniform(-10, +10)])
+
+    shoulder = np.array([0, 0])
+    elbow, wrist, end_effector = forward_kinematics(q1, q2, q3, l1, l2, l3)
+    r_x = np.array([end_effector[0] - shoulder[0], end_effector[0] - elbow[0], end_effector[0] - wrist[0]])
+    r_y = np.array([end_effector[1] - shoulder[1], end_effector[1] - elbow[1], end_effector[1] - wrist[1]])
+
+    tau_formula = r_x*F[1] - r_y*F[0] 
+    tau = force_to_torque(F, q1, q2, q3, l1, l2, l3)
+
+    assert np.allclose(tau, tau_formula)
+
+
 print('Test passed.')
-
-
-
