@@ -1,5 +1,5 @@
 import numpy as np
-from kinematics import forward_kinematics, jacobian, numerical_jacobian, force_to_torque
+from kinematics import forward_kinematics, jacobian, numerical_jacobian, force_to_torque, jacobian_null_space
 
 # Test1: 0°, 90°, 0° and l1=l2=l3=1
 elbow1, wrist1, end_effector1 = forward_kinematics(np.deg2rad(0), np.deg2rad(90), np.deg2rad(0))
@@ -84,6 +84,24 @@ for i in range(100):
     tau = force_to_torque(F, q1, q2, q3, l1, l2, l3)
 
     assert np.allclose(tau, tau_formula)
+
+
+# Test6: null space of J at 0°, 90°, 0° (l1 = l2 = l3 = 1), compared with the
+# vector computed by hand, (0, 1, -2), normalized. scipy returns a unit vector
+# with arbitrary sign, so both n and -n are accepted. Also checks J @ n = 0.
+n_column = jacobian_null_space(np.deg2rad(0), np.deg2rad(90), np.deg2rad(0))
+n = n_column[:, 0]
+
+expected_n = np.array([0, 1, -2])
+expected_n_norm = np.linalg.norm(expected_n)
+expected_n = expected_n/expected_n_norm # dividing by the norm to obtain normalized vector to compare with n
+
+J = jacobian(np.deg2rad(0), np.deg2rad(90), np.deg2rad(0))
+ee_velocity = J@n # should be 0
+
+assert np.allclose(n, expected_n) or np.allclose(-n, expected_n)
+assert np.allclose(ee_velocity, np.zeros(2))
+
 
 
 print('Test passed.')

@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import null_space
 
 
 def forward_kinematics(q1, q2, q3, l1=1, l2=1, l3=1):
@@ -71,6 +72,27 @@ def force_to_torque(F, q1, q2, q3, l1=1, l2=1, l3=1):
     J = jacobian(q1, q2, q3, l1, l2, l3)
     tau = J.T @ F
     return tau
+
+
+def jacobian_null_space(q1, q2, q3, l1=1, l2=1, l3=1):
+    """Null space of the arm Jacobian.
+
+    Returns an orthonormal basis of the joint velocities that produce
+    no end-effector velocity (J @ n = 0).
+
+    Args:
+        q1, q2, q3: joint angles in radians (q2 relative to link 1,
+            q3 relative to link 2).
+        l1, l2, l3: link lengths (default 1).
+
+    Returns:
+        Array of shape (3, k), one basis vector per column. k = 1 in
+        regular configurations, k = 2 at singularities. Each vector has
+        unit length and arbitrary sign.
+    """ 
+    J = jacobian(q1, q2, q3, l1, l2, l3)
+    return null_space(J)
+
 
 
 
