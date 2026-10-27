@@ -16,11 +16,11 @@ The paper proposes the *synergy expansion hypothesis*, built on three propositio
 
 The numerical example makes the first two propositions concrete. A planar 3-link arm (upper arm, forearm, hand) actuated by 10 muscles must produce a given force at the hand in a fixed posture.
 
-![The task: a 10 N force at the hand, posture fixed](figures/task.png)
+<p align="center"><img src="figures/task.png" alt="The task: a 10 N force at the hand, posture fixed" width="380"></p>
 
 The 10 muscles of the model, as drawn in the paper: shoulder (sf, se), elbow (ef, ee) and wrist (wf, we) mono-articular flexor/extensor pairs, a bi-articular shoulder–elbow pair (bf, be) and a forearm wrist pair (fwf, fwe).
 
-![Fig. 5 of the paper: the 3-link arm model and its 10 muscles](figures/paper_fig5.png)
+<p align="center"><img src="figures/paper_fig5.png" alt="Fig. 5 of the paper: the 3-link arm model and its 10 muscles" width="380"></p>
 
 *Fig. 5 from Tessari, West, Hogan, PNAS 2025, reproduced without changes under the CC BY-NC-ND 4.0 license.*
 
@@ -81,19 +81,19 @@ The paper does not report all the numerical values, so some were chosen or estim
 
 Three learners start from the same point (all muscles relaxed) and end on different solutions:
 
-![Random search for three runs: same start, same task, different muscle forces](figures/learning.gif)
+<p align="center"><img src="figures/learning.gif" alt="Random search for three runs: same start, same task, different muscle forces" width="760"></p>
 
 The four most different of the 50 solutions all produce the required joint torques, with very different muscle forces:
 
-![Four solutions: different muscle forces (left), same joint torques (right)](figures/solutions.png)
+<p align="center"><img src="figures/solutions.png" alt="Four solutions: different muscle forces (left), same joint torques (right)" width="640"></p>
 
 Torque error during learning for all 50 runs (replica of Fig. 8 of the paper):
 
-![Replica of Fig. 8: torque error during learning, 50 runs](fig8_replica.png)
+<p align="center"><img src="fig8_replica.png" alt="Replica of Fig. 8: torque error during learning, 50 runs" width="640"></p>
 
 For comparison, the original Fig. 8:
 
-![Fig. 8 of the paper: torque error during learning](figures/paper_fig8.png)
+<p align="center"><img src="figures/paper_fig8.png" alt="Fig. 8 of the paper: torque error during learning" width="420"></p>
 
 *Fig. 8 from Tessari, West, Hogan, PNAS 2025, reproduced without changes under the CC BY-NC-ND 4.0 license.*
 
