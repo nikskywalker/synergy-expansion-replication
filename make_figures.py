@@ -4,6 +4,7 @@ Generates, in the folder figures/:
     task.png       the arm in the task posture with the required hand force
     solutions.png  the muscle forces of the most different solutions found
     learning.gif   the random search in action for three runs
+    null_space.gif the arm moving along the null space of J, hand still
 
 Run after search.py (it needs synergies.npy):
     python make_figures.py
@@ -17,7 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 import numpy as np
 
-from kinematics import forward_kinematics, force_to_torque
+from kinematics import forward_kinematics, force_to_torque, jacobian, jacobian_null_space
 from muscles import Jm, muscle_force_to_torque
 from search import compute_error
 
@@ -25,7 +26,7 @@ from search import compute_error
 # Task, same as in search.py: 10 N in +x at the hand, posture from Fig. 7.
 F = np.array([10, 0])
 Q = np.deg2rad([30, 45, 30])
-L = (0.35, 0.30, 0.19)
+L = (0.35, 0.30, 0.20)
 TAU_REQUIRED = force_to_torque(F, *Q, *L)
 
 MUSCLES = ["sf", "se", "bf", "be", "ef", "ee", "wf", "we", "fwf", "fwe"]
@@ -238,6 +239,89 @@ def make_gif(runs, path, fps=8):
     plt.close(fig)
 
 
+def null_space_path(n_steps=60, step=0.01):
+    """Joint angles moving along the null space of J, from the task posture.
+
+    At each step the joints move by `step` rad along the null-space direction
+    n (J @ n = 0), keeping the same orientation as the previous step (n and -n
+    are both valid). Moving along n leaves the hand still only to first order,
+    so a small correction with the pseudoinverse of J pulls the hand back to
+    its starting point after every step.
+
+    Returns:
+        Array (2 * n_steps + 1, 3): joint angles going one way, then the other.
+    """
+    hand_target = forward_kinematics(*Q, *L)[2]
+    paths = []
+    for sign in (+1, -1):
+        q = Q.copy()
+        direction = None
+        path = []
+        for _ in range(n_steps):
+            n = jacobian_null_space(*q, *L)[:, 0]
+            if direction is None:
+                direction = sign * n
+            if n @ direction < 0:          # keep the same orientation
+                n = -n
+            direction = n
+            q = q + step * n
+            hand = forward_kinematics(*q, *L)[2]
+            q = q + np.linalg.pinv(jacobian(*q, *L)) @ (hand_target - hand)
+            path.append(q)
+        paths.append(np.array(path))
+    forward, backward = paths
+    return np.vstack([forward[::-1], Q, backward])
+
+
+def make_null_space_gif(path, fps=20):
+    """The arm moves along the null space of J: joints change, the hand stays still."""
+    qs = null_space_path()
+    frames = np.concatenate([np.arange(len(qs) // 2, len(qs)),       # from the task posture
+                             np.arange(len(qs) - 1, -1, -1),          # to one end
+                             np.arange(0, len(qs) // 2 + 1)])         # and back
+    shoulder = np.array([0.0, 0.0])
+    chains = [np.array([shoulder, *forward_kinematics(*q, *L)]) for q in qs]
+    hand_target = forward_kinematics(*Q, *L)[2]
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    draw_ground(ax, shoulder)
+    for k in (1, 2):  # paths of elbow and wrist
+        trace = np.array([c[k] for c in chains])
+        ax.plot(trace[:, 0], trace[:, 1], color="0.75", linewidth=1, linestyle="--", zorder=0)
+    ghost, = ax.plot([], [], "-", color="0.85", linewidth=5, solid_capstyle="round", zorder=0)
+    links, = ax.plot([], [], "-", color="0.25", linewidth=5, solid_capstyle="round", zorder=1)
+    joints, = ax.plot([], [], "o", color="white", markeredgecolor="0.25",
+                      markersize=11, markeredgewidth=2, zorder=2)
+    ax.plot(*hand_target, "o", color="tab:red", markersize=7, zorder=3)
+    label = ax.text(0.02, 0.97, "", transform=ax.transAxes, va="top", fontsize=10,
+                    family="monospace")
+    ghost.set_data(chains[len(qs) // 2][:, 0], chains[len(qs) // 2][:, 1])
+
+    allpts = np.vstack(chains)
+    ax.set_aspect("equal")
+    ax.set_xlim(allpts[:, 0].min() - 0.12, allpts[:, 0].max() + 0.12)
+    ax.set_ylim(allpts[:, 1].min() - 0.1, allpts[:, 1].max() + 0.12)
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.grid(True, alpha=0.3)
+    ax.set_title("Moving along the null space of J:\nthe joints move, the hand (red) stays still")
+
+    def update(frame):
+        c = chains[frame]
+        links.set_data(c[:, 0], c[:, 1])
+        joints.set_data(c[:, 0], c[:, 1])
+        drift = np.linalg.norm(c[3] - hand_target) * 1000
+        angles = np.rad2deg(qs[frame])
+        label.set_text(f"angles {angles[0]:5.1f} {angles[1]:5.1f} {angles[2]:5.1f} deg\n"
+                       f"hand drift {drift:.2f} mm")
+        return []
+
+    fig.tight_layout()
+    animation = FuncAnimation(fig, update, frames=frames, blit=False)
+    animation.save(path, writer=PillowWriter(fps=fps), dpi=80)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT_DIR, exist_ok=True)
     synergies = np.load("synergies.npy")
@@ -252,5 +336,6 @@ if __name__ == "__main__":
     plot_task(os.path.join(OUT_DIR, "task.png"))
     plot_solutions(synergies, runs, os.path.join(OUT_DIR, "solutions.png"))
     make_gif(runs[:3], os.path.join(OUT_DIR, "learning.gif"))
-    print(f"Saved task.png, solutions.png and learning.gif in {OUT_DIR}/ "
+    make_null_space_gif(os.path.join(OUT_DIR, "null_space.gif"))
+    print(f"Saved task.png, solutions.png, learning.gif and null_space.gif in {OUT_DIR}/ "
           f"(runs shown: {runs})")

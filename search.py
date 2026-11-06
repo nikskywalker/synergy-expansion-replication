@@ -71,7 +71,7 @@ if __name__ == "__main__":
     # Fig. 7 (estimated). Required joint torques are unique: tau = J^T F.
     F = np.array([10, 0])
     tau_required = force_to_torque(F, np.deg2rad(30), np.deg2rad(45), np.deg2rad(30),
-                                   0.35, 0.30, 0.19)
+                                   0.35, 0.30, 0.20)
     initial_error = compute_error(np.zeros(10), tau_required)
 
     # 50 runs, one per seed, all from Fm = 0 (Fig. 8)
